@@ -1,0 +1,9 @@
+[package]
+name = "embedded-mp3"
+version = "0.1.0"
+authors = ["Cristian Eigel <cristian.eigel@icloud.com>"]
+edition = "2018"
+
+[dependencies]
+minimp3-sys = { version = "0.7.0", path = "minimp3-sys" }
+cty = "0.2.1"

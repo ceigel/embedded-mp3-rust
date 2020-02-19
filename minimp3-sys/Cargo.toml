@@ -1,0 +1,17 @@
+[package]
+name = "minimp3-sys"
+version = "0.7.0"
+authors = ["Cristian Eigel <cristian.eigel@icloud.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+exclude = ["minimp3/vectors/*", "minimp3/player/*", "minimp3/fuzzing/*", "minimp3/huffopt/*", "minimp3/scripts/*"]
+
+[build-dependencies]
+bindgen = "0.53.1"
+cc = "1.0.50"
+
+[dependencies]
+cty = "0.2.1"
+
