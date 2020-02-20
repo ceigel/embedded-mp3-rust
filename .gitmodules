@@ -1,3 +1,0 @@
-[submodule "minimp3-sys/minimp3"]
-	path = minimp3-sys/minimp3
-	url = https://github.com/lieff/minimp3.git
