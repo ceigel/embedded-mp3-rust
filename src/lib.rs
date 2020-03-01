@@ -1,8 +1,8 @@
 #![no_std]
 
-extern crate minimp3_sys as ffi;
 pub const MAX_SAMPLES_PER_FRAME: usize = ffi::MINIMP3_MAX_SAMPLES_PER_FRAME as usize;
 use core::mem::MaybeUninit;
+mod ffi;
 
 #[derive(Debug)]
 pub enum DecodeResult<'a> {
