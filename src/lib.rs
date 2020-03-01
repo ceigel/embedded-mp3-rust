@@ -2,7 +2,7 @@
 
 extern crate minimp3_sys as ffi;
 pub const MAX_SAMPLES_PER_FRAME: usize = ffi::MINIMP3_MAX_SAMPLES_PER_FRAME as usize;
-use core::mem;
+use core::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub enum DecodeResult<'a> {
@@ -19,21 +19,34 @@ pub struct Metadata<'a> {
     pub samples: &'a [i16],
 }
 
-pub struct Decoder {
-    dec: ffi::mp3dec_t,
+pub struct DecoderData {
+    dec: MaybeUninit<ffi::mp3dec_t>,
     pcm: [i16; MAX_SAMPLES_PER_FRAME],
 }
 
-impl Decoder {
-    pub fn new() -> Self {
-        let dec = unsafe {
-            let mut decoder: ffi::mp3dec_t = mem::zeroed();
-            ffi::mp3dec_init(&mut decoder);
-            decoder
-        };
+impl DecoderData {
+    pub const fn new() -> Self {
+        let dec = MaybeUninit::uninit();
         Self {
             dec,
-            pcm: [Default::default(); MAX_SAMPLES_PER_FRAME],
+            pcm: [0; MAX_SAMPLES_PER_FRAME],
+        }
+    }
+}
+
+pub struct Decoder<'a> {
+    dec: &'a mut MaybeUninit<ffi::mp3dec_t>,
+    pcm: &'a mut [i16; MAX_SAMPLES_PER_FRAME],
+}
+
+impl<'a> Decoder<'a> {
+    pub fn new(data: &'a mut DecoderData) -> Self {
+        unsafe {
+            ffi::mp3dec_init(data.dec.as_mut_ptr());
+        };
+        Self {
+            dec: &mut data.dec,
+            pcm: &mut data.pcm,
         }
     }
 
@@ -42,17 +55,19 @@ impl Decoder {
         let out_ptr: *mut i16 = self.pcm.as_mut_ptr();
         let buf_size = data.len() as usize;
         let data_ptr: *const u8 = data.as_ptr();
-        let mut ffi_frame: ffi::mp3dec_frame_info_t = unsafe { mem::zeroed() };
+        let mut ffi_frame: MaybeUninit<ffi::mp3dec_frame_info_t> = MaybeUninit::uninit();
 
+        let ffi_frame_ptr = ffi_frame.as_mut_ptr();
         let sample_count: cty::c_int = unsafe {
             ffi::mp3dec_decode_frame(
-                &mut self.dec,
+                self.dec.as_mut_ptr(),
                 data_ptr,
                 buf_size as cty::c_int,
                 out_ptr,
-                &mut ffi_frame,
+                ffi_frame_ptr,
             )
         };
+        let ffi_frame = unsafe { ffi_frame.assume_init() };
         if sample_count != 0 {
             DecodeResult::Successful(
                 ffi_frame.frame_bytes.max(0) as usize,
@@ -60,7 +75,7 @@ impl Decoder {
                     channels: ffi_frame.channels.max(0) as usize,
                     sample_count: sample_count.max(0) as usize,
                     sample_rate: ffi_frame.hz.max(0) as u32,
-                    samples: &self.pcm,
+                    samples: &self.pcm[..],
                 },
             )
         } else if ffi_frame.frame_bytes > 0 {

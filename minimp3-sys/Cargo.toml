@@ -9,9 +9,9 @@ edition = "2018"
 exclude = ["minimp3/vectors/*", "minimp3/player/*", "minimp3/fuzzing/*", "minimp3/huffopt/*", "minimp3/scripts/*"]
 
 [build-dependencies]
-bindgen = "0.53.1"
+# bindgen = "0.50"
+clang-sys = "0.28.1"
 cc = "1.0.50"
 
 [dependencies]
 cty = "0.2.1"
-
