@@ -21,22 +21,17 @@ pub struct Metadata<'a> {
 
 pub struct DecoderData {
     dec: MaybeUninit<ffi::mp3dec_t>,
-    pcm: [i16; MAX_SAMPLES_PER_FRAME],
 }
 
 impl DecoderData {
     pub const fn new() -> Self {
         let dec = MaybeUninit::uninit();
-        Self {
-            dec,
-            pcm: [0; MAX_SAMPLES_PER_FRAME],
-        }
+        Self { dec }
     }
 }
 
 pub struct Decoder<'a> {
     dec: &'a mut MaybeUninit<ffi::mp3dec_t>,
-    pcm: &'a mut [i16; MAX_SAMPLES_PER_FRAME],
 }
 
 impl<'a> Decoder<'a> {
@@ -44,15 +39,16 @@ impl<'a> Decoder<'a> {
         unsafe {
             ffi::mp3dec_init(data.dec.as_mut_ptr());
         };
-        Self {
-            dec: &mut data.dec,
-            pcm: &mut data.pcm,
-        }
+        Self { dec: &mut data.dec }
     }
 
-    pub fn decode(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult {
+    pub fn decode<'b>(
+        &mut self,
+        data: &(impl AsRef<[u8]> + ?Sized),
+        pcm: &'b mut [i16; MAX_SAMPLES_PER_FRAME],
+    ) -> DecodeResult<'b> {
         let data = data.as_ref();
-        let out_ptr: *mut i16 = self.pcm.as_mut_ptr();
+        let out_ptr: *mut i16 = pcm.as_mut_ptr();
         let buf_size = data.len() as usize;
         let data_ptr: *const u8 = data.as_ptr();
         let mut ffi_frame: MaybeUninit<ffi::mp3dec_frame_info_t> = MaybeUninit::uninit();
@@ -75,7 +71,7 @@ impl<'a> Decoder<'a> {
                     channels: ffi_frame.channels.max(0) as usize,
                     sample_count: sample_count.max(0) as usize,
                     sample_rate: ffi_frame.hz.max(0) as u32,
-                    samples: &self.pcm[..],
+                    samples: &pcm[..],
                 },
             )
         } else if ffi_frame.frame_bytes > 0 {
