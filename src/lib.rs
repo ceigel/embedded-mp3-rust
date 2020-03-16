@@ -2,6 +2,7 @@
 
 pub const MAX_SAMPLES_PER_FRAME: usize = ffi::MINIMP3_MAX_SAMPLES_PER_FRAME as usize;
 use core::mem::MaybeUninit;
+use core::ptr;
 mod ffi;
 
 #[derive(Debug)]
@@ -42,17 +43,32 @@ impl<'a> Decoder<'a> {
         Self { dec: &mut data.dec }
     }
 
+    pub fn peek<'b>(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult<'b> {
+        self.ffi_decode(data, &mut [])
+    }
     pub fn decode<'b>(
         &mut self,
         data: &(impl AsRef<[u8]> + ?Sized),
         pcm: &'b mut [i16; MAX_SAMPLES_PER_FRAME],
     ) -> DecodeResult<'b> {
+        self.ffi_decode(data, pcm)
+    }
+
+    fn ffi_decode<'b>(
+        &mut self,
+        data: &(impl AsRef<[u8]> + ?Sized),
+        pcm: &'b mut [i16],
+    ) -> DecodeResult<'b> {
         let data = data.as_ref();
-        let out_ptr: *mut i16 = pcm.as_mut_ptr();
         let buf_size = data.len() as usize;
         let data_ptr: *const u8 = data.as_ptr();
         let mut ffi_frame: MaybeUninit<ffi::mp3dec_frame_info_t> = MaybeUninit::uninit();
 
+        let out_ptr: *mut i16 = if pcm.len() == 0 {
+            ptr::null_mut()
+        } else {
+            pcm.as_mut_ptr()
+        };
         let ffi_frame_ptr = ffi_frame.as_mut_ptr();
         let sample_count: cty::c_int = unsafe {
             ffi::mp3dec_decode_frame(
