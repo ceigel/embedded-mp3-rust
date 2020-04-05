@@ -6,18 +6,17 @@ use core::ptr;
 mod ffi;
 
 #[derive(Debug)]
-pub enum DecodeResult<'a> {
-    Successful(usize, Metadata<'a>),
+pub enum DecodeResult {
+    Successful(usize, Metadata),
     SkippedData(usize),
     InsufficientData,
 }
 
 #[derive(Debug)]
-pub struct Metadata<'a> {
+pub struct Metadata {
     pub channels: usize,
     pub sample_count: usize,
     pub sample_rate: u32,
-    pub samples: &'a [i16],
 }
 
 pub struct DecoderData {
@@ -43,14 +42,14 @@ impl<'a> Decoder<'a> {
         Self { dec: &mut data.dec }
     }
 
-    pub fn peek<'b>(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult<'b> {
+    pub fn peek<'b>(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult {
         self.ffi_decode(data, &mut [])
     }
     pub fn decode<'b>(
         &mut self,
         data: &(impl AsRef<[u8]> + ?Sized),
         pcm: &'b mut [i16; MAX_SAMPLES_PER_FRAME],
-    ) -> DecodeResult<'b> {
+    ) -> DecodeResult {
         self.ffi_decode(data, pcm)
     }
 
@@ -58,7 +57,7 @@ impl<'a> Decoder<'a> {
         &mut self,
         data: &(impl AsRef<[u8]> + ?Sized),
         pcm: &'b mut [i16],
-    ) -> DecodeResult<'b> {
+    ) -> DecodeResult {
         let data = data.as_ref();
         let buf_size = data.len() as usize;
         let data_ptr: *const u8 = data.as_ptr();
@@ -87,7 +86,6 @@ impl<'a> Decoder<'a> {
                     channels: ffi_frame.channels.max(0) as usize,
                     sample_count: sample_count.max(0) as usize,
                     sample_rate: ffi_frame.hz.max(0) as u32,
-                    samples: &pcm[..],
                 },
             )
         } else if ffi_frame.frame_bytes > 0 {
