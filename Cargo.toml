@@ -8,6 +8,7 @@ edition = "2018"
 cty = "0.2.1"
 
 [build-dependencies]
-#bindgen = "0.53.2"
-clang-sys = "0.29.2"
-cc = "1.0.50"
+# bindgen = "0.55.1"
+cc = "1.0.61"
+clang-sys = "1.0.1"
+

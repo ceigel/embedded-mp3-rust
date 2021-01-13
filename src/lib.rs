@@ -5,6 +5,7 @@ use core::mem::MaybeUninit;
 use core::ptr;
 mod ffi;
 
+/// Result of decoding
 #[derive(Debug)]
 pub enum DecodeResult {
     Successful(usize, Metadata),
