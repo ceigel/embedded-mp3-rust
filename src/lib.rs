@@ -1,3 +1,10 @@
+//! # embedded-mp3
+//!
+//! > Wrapper over minimp3 library for embedded rust. One important functionality is
+//! that it allows the input mp3 to be streamed into the library.
+//!
+//! For more about minimp3 see https://github.com/lieff/minimp3
+//!
 #![no_std]
 
 pub const MAX_SAMPLES_PER_FRAME: usize = ffi::MINIMP3_MAX_SAMPLES_PER_FRAME as usize;
@@ -5,14 +12,7 @@ use core::mem::{self, MaybeUninit};
 use core::ptr;
 mod ffi;
 
-/// Result of decoding
-#[derive(Debug)]
-pub enum DecodeResult {
-    Successful(usize, Metadata),
-    SkippedData(usize),
-    InsufficientData,
-}
-
+/// Metadata of a decoded frame
 #[derive(Debug)]
 pub struct Metadata {
     pub channels: usize,
@@ -20,6 +20,18 @@ pub struct Metadata {
     pub sample_rate: u32,
 }
 
+/// Result of decoding
+#[derive(Debug)]
+pub enum DecodeResult {
+    /// Decoding was successful
+    Successful(usize, Metadata),
+    /// Frames were skipped
+    SkippedData(usize),
+    /// Can't decode frame
+    InsufficientData,
+}
+
+/// Wrapper object over the minimp3 decoder
 pub struct Decoder {
     dec: ffi::mp3dec_t,
 }
@@ -35,9 +47,10 @@ impl Decoder {
         }
     }
 
-    pub fn peek<'b>(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult {
-        self.ffi_decode(data, &mut [])
-    }
+    /// Decode a frame
+    /// * `data`: mp3 data as a u8 slice
+    /// * `pcm`: Output buffer, where decoded data is placed
+    /// * returns: Enumeration DecodeResult
     pub fn decode<'b>(
         &mut self,
         data: &(impl AsRef<[u8]> + ?Sized),
