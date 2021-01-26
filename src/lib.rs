@@ -1,7 +1,7 @@
 #![no_std]
 
 pub const MAX_SAMPLES_PER_FRAME: usize = ffi::MINIMP3_MAX_SAMPLES_PER_FRAME as usize;
-use core::mem::MaybeUninit;
+use core::mem::{self, MaybeUninit};
 use core::ptr;
 mod ffi;
 
@@ -20,27 +20,19 @@ pub struct Metadata {
     pub sample_rate: u32,
 }
 
-pub struct DecoderData {
-    dec: MaybeUninit<ffi::mp3dec_t>,
+pub struct Decoder {
+    dec: ffi::mp3dec_t,
 }
 
-impl DecoderData {
-    pub const fn new() -> Self {
-        let dec = MaybeUninit::uninit();
-        Self { dec }
-    }
-}
-
-pub struct Decoder<'a> {
-    dec: &'a mut MaybeUninit<ffi::mp3dec_t>,
-}
-
-impl<'a> Decoder<'a> {
-    pub fn new(data: &'a mut DecoderData) -> Self {
-        unsafe {
-            ffi::mp3dec_init(data.dec.as_mut_ptr());
-        };
-        Self { dec: &mut data.dec }
+impl Decoder {
+    pub fn new() -> Self {
+        Self {
+            dec: unsafe {
+                let mut decoder: ffi::mp3dec_t = mem::zeroed();
+                ffi::mp3dec_init(&mut decoder);
+                decoder
+            },
+        }
     }
 
     pub fn peek<'b>(&mut self, data: &(impl AsRef<[u8]> + ?Sized)) -> DecodeResult {
@@ -72,7 +64,7 @@ impl<'a> Decoder<'a> {
         let ffi_frame_ptr = ffi_frame.as_mut_ptr();
         let sample_count: cty::c_int = unsafe {
             ffi::mp3dec_decode_frame(
-                self.dec.as_mut_ptr(),
+                &mut self.dec,
                 data_ptr,
                 buf_size as cty::c_int,
                 out_ptr,
