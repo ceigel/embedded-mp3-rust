@@ -36,6 +36,12 @@ pub struct Decoder {
     dec: ffi::mp3dec_t,
 }
 
+impl Default for Decoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Decoder {
     pub fn new() -> Self {
         Self {
@@ -69,7 +75,7 @@ impl Decoder {
         let data_ptr: *const u8 = data.as_ptr();
         let mut ffi_frame: MaybeUninit<ffi::mp3dec_frame_info_t> = MaybeUninit::uninit();
 
-        let out_ptr: *mut i16 = if pcm.len() == 0 {
+        let out_ptr: *mut i16 = if pcm.is_empty() {
             ptr::null_mut()
         } else {
             pcm.as_mut_ptr()

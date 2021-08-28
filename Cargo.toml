@@ -3,12 +3,13 @@ name = "embedded-mp3"
 version = "0.1.0"
 authors = ["Cristian Eigel <cristian.eigel@icloud.com>"]
 edition = "2018"
+resolver="2"
 
 [dependencies]
 cty = "0.2.1"
 
 [build-dependencies]
-# bindgen = "0.55.1"
-cc = "1.0.61"
-clang-sys = "1.0.1"
+bindgen = "0.59.1"
+cc = "1.0.69"
+clang-sys = "1.2.0"
 
